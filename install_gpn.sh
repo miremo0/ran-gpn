@@ -65,8 +65,8 @@ ufw route deny out to any
 yes | ufw enable
 
 echo -e "\n\e[1;33m[4/4] Generating Proxy Configuration...\e[0m"
-mkdir -p /etc/shadowsocks-rust
-cat > /etc/shadowsocks-rust/config.json <<EOF
+mkdir -p /var/snap/shadowsocks-rust/common
+cat > /var/snap/shadowsocks-rust/common/config.json <<EOF
 {
     "server": "0.0.0.0",
     "server_port": $PROXY_PORT,
@@ -84,7 +84,7 @@ Description=Ran Ping Booster Proxy (Shadowsocks-Rust)
 After=network.target
 
 [Service]
-ExecStart=/snap/bin/shadowsocks-rust.ssserver -c /etc/shadowsocks-rust/config.json
+ExecStart=/snap/bin/shadowsocks-rust.ssserver -c /var/snap/shadowsocks-rust/common/config.json
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65535
