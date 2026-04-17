@@ -18,8 +18,8 @@ echo -e "\e[1;36m==================================================\e[0m"
 echo -e "\e[1;36m   RanOnline GPN (Ping Booster) Auto-Installer    \e[0m"
 echo -e "\e[1;36m==================================================\e[0m"
 
-# 1. Get Game Server IP from user
-read -p "Enter your Ran Game Server IP Address (e.g., 141.134.12.33): " GAME_SERVER_IP
+# 1. Get Game Server IP from user (IPv4 preferred for current client routing flow)
+read -p "Enter your Ran Game Server IPv4 Address (e.g., 141.134.12.33): " GAME_SERVER_IP
 if [[ -z "$GAME_SERVER_IP" ]]; then
     echo -e "\e[1;31mGame Server IP is required. Exiting.\e[0m"
     exit 1
@@ -82,11 +82,13 @@ cat > /etc/systemd/system/ran-gpn.service <<EOF
 [Unit]
 Description=Ran Ping Booster Proxy (Shadowsocks-Rust)
 After=network.target
+StartLimitIntervalSec=0
 
 [Service]
+ExecStartPre=/bin/sleep 2
 ExecStart=/snap/bin/shadowsocks-rust.ssserver -c /var/snap/shadowsocks-rust/common/config.json
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=10
 LimitNOFILE=65535
 
 [Install]
@@ -98,15 +100,25 @@ systemctl daemon-reload
 systemctl enable ran-gpn.service
 systemctl restart ran-gpn.service
 
-# Get Public IP for display
-PUBLIC_IP=$(curl -s ifconfig.me)
+# Get Public IP for display (prefer IPv4 to avoid IPv6 confusion)
+PUBLIC_IP4=$(curl -4 -s ifconfig.me || curl -4 -s ifconfig.co || true)
+PUBLIC_IP6=$(curl -6 -s ifconfig.me || curl -6 -s ifconfig.co || true)
+
+if [[ -z "$PUBLIC_IP4" ]]; then
+    PUBLIC_IP4="(unavailable)"
+fi
+
+if [[ -z "$PUBLIC_IP6" ]]; then
+    PUBLIC_IP6="(unavailable)"
+fi
 
 echo -e "\n\e[1;32m==================================================\e[0m"
 echo -e "\e[1;32m  GPN Server Successfully Installed and Running!  \e[0m"
 echo -e "\e[1;32m==================================================\e[0m"
 echo -e "\e[1;37mBelow are the details you need for your C# RanPingBooster App:\e[0m"
 echo -e ""
-echo -e "Server IP : \e[1;32m$PUBLIC_IP\e[0m"
+echo -e "Server IPv4 : \e[1;32m$PUBLIC_IP4\e[0m \e[1;33m(use this in launcher-config / Supabase)\e[0m"
+echo -e "Server IPv6 : \e[1;32m$PUBLIC_IP6\e[0m"
 echo -e "Port      : \e[1;32m$PROXY_PORT\e[0m"
 echo -e "Password  : \e[1;32m$PASSWORD\e[0m"
 echo -e "Method    : \e[1;32maes-256-gcm\e[0m"
